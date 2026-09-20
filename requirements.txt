@@ -1,3 +1,1029 @@
 pytest==8.4.1
 coverage==7.9
 pytest-cov==6.2.1
+
+Absolutely. Since you pasted the **full exercise**, I can give you the complete path from your **current state** to a finished submission, including what each command does and how to verify every requirement.
+
+One important point first: your current GitHub repository is `test01`, while the exercise explicitly requires **`contact-validator-scenario`**. Rename it first. GitHub supports renaming from **Settings → General → Repository name → Rename**. ([GitHub Docs][1])
+
+---
+
+# Part 0 — What you are trying to achieve
+
+At the end, your repository should look conceptually like this:
+
+```text
+contact-validator-scenario
+│
+├── .github/
+│   └── workflows/
+│       ├── tests.yml
+│       └── coverage.yml
+│
+├── src/
+│   └── contact_validator.py
+│
+├── tests/
+│   └── contact_validator_test.py
+│
+└── requirements.txt
+```
+
+And GitHub should have:
+
+```text
+main
+ ↑
+ protected
+ ↑
+ PR required
+ ↑
+ Tests required
+ ↑
+ Coverage >= 85% required
+```
+
+Your final PR should have:
+
+```text
+✓ Tests
+✓ Coverage
+✓ No conflicts
+✓ Mergeable
+```
+
+and then be merged.
+
+---
+
+# PART 1 — Rename the repository
+
+Your screenshot currently shows:
+
+```text
+Ayushraj2319 / test01
+```
+
+Go to:
+
+**GitHub → Settings → General**
+
+Find:
+
+**Repository name**
+
+Change:
+
+```text
+test01
+```
+
+to:
+
+```text
+contact-validator-scenario
+```
+
+Click **Rename**.
+
+### Verify
+
+Refresh GitHub.
+
+At the top you should now see:
+
+```text
+Ayushraj2319 / contact-validator-scenario
+```
+
+---
+
+# PART 2 — Make sure the repository is public
+
+The exercise says the repository must be **public**.
+
+Go:
+
+**Settings → General → Danger Zone → Change repository visibility**
+
+It should say:
+
+```text
+Public
+```
+
+If it already says public, **don't change anything**.
+
+GitHub's current visibility controls are under Settings → General → Danger Zone. ([GitHub Docs][2])
+
+---
+
+# PART 3 — Make sure Codespace is connected to the renamed repo
+
+Go back to your Codespace terminal.
+
+Run:
+
+```bash
+git remote -v
+```
+
+### What it does
+
+It shows which GitHub repository your local Codespace is connected to.
+
+You should see something containing:
+
+```text
+contact-validator-scenario
+```
+
+If it still shows the old name, run:
+
+```bash
+git remote set-url origin https://github.com/Ayushraj2319/contact-validator-scenario.git
+```
+
+Then verify:
+
+```bash
+git remote -v
+```
+
+GitHub notes that existing clone/fetch/push URLs generally redirect after a rename, but recommends updating the local remote to avoid confusion. ([GitHub Docs][1])
+
+---
+
+# PART 4 — Check your current branch
+
+Run:
+
+```bash
+git branch
+```
+
+You should eventually have:
+
+```text
+* main
+```
+
+Your screenshot previously showed:
+
+```text
+* main
+```
+
+so that's good.
+
+---
+
+# PART 5 — Requirement 1: Baseline coverage
+
+The exercise says you must first measure coverage **before fixing anything**.
+
+Run:
+
+```bash
+python -m pytest --cov=src --cov-report=term-missing
+```
+
+### What this does
+
+Breakdown:
+
+```text
+python -m pytest
+```
+
+Runs your Python tests.
+
+```text
+--cov=src
+```
+
+Measures how much of the `src` directory is exercised by the tests.
+
+```text
+--cov-report=term-missing
+```
+
+Shows which source-code lines aren't covered.
+
+---
+
+### Your earlier baseline
+
+You already ran this during the exercise and got approximately:
+
+```text
+3 passed
+52% coverage
+```
+
+The untested functions were:
+
+```text
+mask_email
+normalize_phone
+```
+
+That's the baseline you needed.
+
+---
+
+# PART 6 — Check your requirements.txt
+
+Run:
+
+```bash
+cat requirements.txt
+```
+
+It should contain:
+
+```text
+pytest==8.4.1
+coverage==7.9
+pytest-cov==6.2.1
+```
+
+Then install them:
+
+```bash
+pip install -r requirements.txt
+```
+
+### What it does
+
+Installs exactly the Python packages required by the project.
+
+---
+
+# PART 7 — Workflow A: Run Tests
+
+Your first GitHub Actions workflow should run **only for pull requests targeting `main`**.
+
+Check it:
+
+```bash
+cat .github/workflows/tests.yml
+```
+
+It should have something conceptually like:
+
+```yaml
+name: Run Tests
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tests
+        run: python -m pytest
+```
+
+### Why `pull_request`?
+
+Because the exercise wants GitHub to check code **before it enters `main`**.
+
+If you only used:
+
+```yaml
+on: push
+```
+
+the code could already be pushed to `main` before CI complained.
+
+---
+
+# PART 8 — Workflow B: Coverage
+
+Check:
+
+```bash
+cat .github/workflows/coverage.yml
+```
+
+You need:
+
+```yaml
+name: Enforce Coverage
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tests with coverage
+        run: python -m pytest --cov=src --cov-report=term-missing --cov-fail-under=85
+```
+
+The critical part is:
+
+```bash
+--cov-fail-under=85
+```
+
+### What it does
+
+If coverage is:
+
+```text
+87%
+```
+
+→ command succeeds.
+
+If coverage is:
+
+```text
+73%
+```
+
+→ command fails.
+
+That is what turns coverage from a **number being displayed** into a **CI requirement**.
+
+---
+
+# PART 9 — Commit your workflow files
+
+Check:
+
+```bash
+git status
+```
+
+Then:
+
+```bash
+git add .github/workflows/
+```
+
+Then:
+
+```bash
+git commit -m "Add pull request CI workflows"
+```
+
+Then:
+
+```bash
+git push origin main
+```
+
+---
+
+# PART 10 — Create the branch for the intentional failure
+
+Now create the branch required by the exercise:
+
+```bash
+git checkout -b test-mask-email
+```
+
+Verify:
+
+```bash
+git branch
+```
+
+You should see:
+
+```text
+* test-mask-email
+  main
+```
+
+---
+
+# PART 11 — Enable the disabled email test
+
+Open:
+
+```text
+tests/contact_validator_test.py
+```
+
+Uncomment:
+
+```python
+def test_mask_email_basic():
+    """Test masking a typical email address."""
+    # Arrange
+    email = "priya@example.com"
+
+    # Act
+    result = mask_email(email)
+
+    # Assert
+    assert result == "pr***@example.com"
+```
+
+Then run:
+
+```bash
+python -m pytest
+```
+
+### Important
+
+The exercise specifically says:
+
+> enable it without correcting anything yet
+
+So **don't fix the test before pushing the intentional failure**.
+
+---
+
+# PART 12 — Check coverage locally
+
+Run:
+
+```bash
+python -m pytest --cov=src --cov-report=term-missing --cov-fail-under=85
+```
+
+You should see the coverage problem if your current test set doesn't reach 85%.
+
+Your earlier run showed approximately:
+
+```text
+73.91%
+```
+
+and therefore:
+
+```text
+FAIL Required test coverage of 85% not reached
+```
+
+That's exactly the kind of failure the exercise wants you to demonstrate.
+
+---
+
+# PART 13 — Commit the intentionally failing state
+
+Run:
+
+```bash
+git add tests/contact_validator_test.py
+```
+
+Then:
+
+```bash
+git commit -m "Enable mask email test"
+```
+
+Then:
+
+```bash
+git push -u origin test-mask-email
+```
+
+---
+
+# PART 14 — Create the Pull Request
+
+Go to GitHub.
+
+Click:
+
+**Pull requests → New pull request**
+
+Set:
+
+```text
+base: main
+compare: test-mask-email
+```
+
+Create the PR.
+
+For example:
+
+```text
+Enable mask email test
+```
+
+---
+
+# PART 15 — IMPORTANT: see the failure
+
+Wait for GitHub Actions.
+
+You should see the workflows run.
+
+For example:
+
+```text
+❌ Run Tests
+❌ Enforce Coverage
+```
+
+Open the failed workflow.
+
+This is important because the exercise explicitly requires you to **prove that CI catches a problem**.
+
+---
+
+# PART 16 — Diagnose the failures
+
+You need to identify **two different issues**.
+
+### Problem 1
+
+The email test has an incorrect assertion **in the version of the exercise/test state you're expected to demonstrate**.
+
+Your exact repository state should be checked here rather than blindly changing it.
+
+Open:
+
+```text
+tests/contact_validator_test.py
+```
+
+and compare the assertion against what `mask_email()` actually returns.
+
+### Problem 2
+
+Coverage is below:
+
+```text
+85%
+```
+
+because a branch in the source code isn't being tested.
+
+Your earlier Agent work identified the missing case around:
+
+```python
+is_valid_phone(1234567890)
+```
+
+which should raise:
+
+```python
+TypeError
+```
+
+---
+
+# PART 17 — Add the missing test
+
+Add:
+
+```python
+def test_is_valid_phone_type_error():
+    """Test that a non-string phone raises TypeError."""
+    with pytest.raises(TypeError):
+        is_valid_phone(1234567890)
+```
+
+Now run:
+
+```bash
+python -m pytest
+```
+
+Then:
+
+```bash
+python -m pytest --cov=src --cov-report=term-missing --cov-fail-under=85
+```
+
+You previously got:
+
+```text
+6 passed
+87% coverage
+```
+
+So that's above the required:
+
+```text
+85%
+```
+
+---
+
+# PART 18 — Fix the test problem
+
+Fix the incorrect assertion **based on what the function actually returns**, then run:
+
+```bash
+python -m pytest
+```
+
+You want:
+
+```text
+6 passed
+```
+
+or whatever the final number of tests is in your repository.
+
+Then:
+
+```bash
+python -m pytest --cov=src --cov-report=term-missing --cov-fail-under=85
+```
+
+You want:
+
+```text
+Required test coverage of 85% reached
+```
+
+---
+
+# PART 19 — Commit the fixes
+
+The exercise suggests keeping the fixes separate.
+
+First:
+
+```bash
+git add tests/contact_validator_test.py
+```
+
+```bash
+git commit -m "Fix mask email assertion"
+```
+
+Then add the coverage test:
+
+```bash
+git add tests/contact_validator_test.py
+```
+
+```bash
+git commit -m "Add phone TypeError coverage"
+```
+
+Then:
+
+```bash
+git push
+```
+
+---
+
+# PART 20 — Watch the SAME PR
+
+Do **not** create another PR.
+
+Your existing:
+
+```text
+test-mask-email → main
+```
+
+PR should automatically update.
+
+You want:
+
+```text
+✓ Run Tests
+✓ Enforce Coverage
+```
+
+GitHub requires required status checks to pass before a protected branch can be merged. ([GitHub Docs][3])
+
+---
+
+# PART 21 — Now configure branch protection
+
+This is the part you're currently missing.
+
+Go:
+
+**GitHub → Repository → Settings → Rules → Rulesets**
+
+Click:
+
+**New ruleset → New branch ruleset**
+
+GitHub's rulesets can target specific branches and require pull requests and status checks. ([GitHub Docs][4])
+
+### Name
+
+Use:
+
+```text
+Protect main
+```
+
+### Enforcement status
+
+Choose:
+
+```text
+Active
+```
+
+### Target branches
+
+Choose:
+
+```text
+main
+```
+
+---
+
+# PART 22 — Enable these rules
+
+You need:
+
+### ✅ Require a pull request before merging
+
+This means changes must come through a PR instead of simply being pushed directly to `main`. ([GitHub Docs][3])
+
+### ✅ Require status checks to pass before merging
+
+Then select the checks corresponding to your workflow jobs.
+
+Your workflow jobs are likely:
+
+```text
+test
+coverage
+```
+
+or displayed as something like:
+
+```text
+Run Tests / test
+Enforce Coverage / coverage
+```
+
+**Use exactly what GitHub shows in the status-check selection.**
+
+Don't manually invent the name.
+
+### ✅ Require branches to be up to date before merging
+
+The exercise specifically asks for this.
+
+GitHub describes this as the strict form of required status checks: the PR branch must be up to date with `main` before merging. ([GitHub Docs][3])
+
+Then click:
+
+**Create**
+
+---
+
+# PART 23 — Verify the ruleset
+
+Go back:
+
+**Settings → Rules → Rulesets**
+
+You should now see something like:
+
+```text
+Protect main
+Active
+```
+
+Click it.
+
+Verify:
+
+```text
+Target: main
+
+✓ Require a pull request before merging
+✓ Require status checks to pass before merging
+✓ Require branches to be up to date before merging
+```
+
+---
+
+# PART 24 — Verify the PR protection
+
+Go to:
+
+**Pull requests → your PR**
+
+You should see the checks.
+
+If a required check fails:
+
+```text
+❌ Enforce Coverage
+```
+
+the PR should **not be mergeable**.
+
+That's the actual proof that branch protection works.
+
+GitHub's documentation states that required status checks must pass before a PR can be merged. ([GitHub Docs][5])
+
+---
+
+# PART 25 — Add the final PR description
+
+Before merging, your PR description should explain:
+
+```markdown
+## What was wrong
+
+The mask email test was initially disabled. After enabling it, the test exposed an incorrect expected result that needed to be corrected.
+
+The repository also had insufficient test coverage. The non-string input case for `is_valid_phone()` was not covered, which kept coverage below the required 85%.
+
+## How CI caught it
+
+The pull request automatically triggered two GitHub Actions workflows.
+
+- The Run Tests workflow executed the pytest test suite and detected test failures.
+- The Enforce Coverage workflow measured coverage for the `src` directory and failed when coverage was below 85%.
+
+After fixing the test assertion and adding the missing coverage test, both CI checks passed.
+```
+
+---
+
+# PART 26 — Merge
+
+Only after you have:
+
+```text
+✓ Run Tests
+✓ Enforce Coverage
+✓ Branch protection active
+✓ PR description completed
+✓ No conflicts
+```
+
+click:
+
+**Merge pull request → Confirm merge**
+
+---
+
+# PART 27 — FINAL VERIFICATION COMMANDS
+
+After merging, go back to Codespaces.
+
+### Check branch
+
+```bash
+git checkout main
+```
+
+Then:
+
+```bash
+git pull origin main
+```
+
+### Check status
+
+```bash
+git status
+```
+
+Ideally:
+
+```text
+Your branch is up to date with 'origin/main'.
+
+nothing to commit, working tree clean
+```
+
+### Run tests
+
+```bash
+python -m pytest
+```
+
+Expected:
+
+```text
+PASSED
+```
+
+### Run coverage
+
+```bash
+python -m pytest --cov=src --cov-report=term-missing --cov-fail-under=85
+```
+
+Expected:
+
+```text
+TOTAL ... >= 85%
+```
+
+### Check workflows
+
+```bash
+ls .github/workflows
+```
+
+You should have:
+
+```text
+coverage.yml
+tests.yml
+```
+
+### Check branches
+
+```bash
+git branch -a
+```
+
+### Check commits
+
+```bash
+git log --oneline --decorate --graph -10
+```
+
+---
+
+# Your final checklist
+
+You are **DONE** only when all of these are true:
+
+| Requirement             | How to verify                                   |
+| ----------------------- | ----------------------------------------------- |
+| Correct repo name       | GitHub header says `contact-validator-scenario` |
+| Public repo             | Settings → General                              |
+| Baseline measured       | You recorded the initial coverage               |
+| Tests workflow          | `.github/workflows/tests.yml`                   |
+| PR-only trigger         | `pull_request` targeting `main`                 |
+| Coverage workflow       | `.github/workflows/coverage.yml`                |
+| Coverage threshold      | `--cov-fail-under=85`                           |
+| `main` protected        | Ruleset exists and is Active                    |
+| PR required             | Ruleset shows it                                |
+| Coverage check required | Ruleset shows it                                |
+| Up-to-date required     | Ruleset shows it                                |
+| Intentional failure     | PR previously showed failed check               |
+| Failure diagnosed       | Logs inspected                                  |
+| Coverage fixed          | Final coverage ≥ 85%                            |
+| Tests fixed             | All tests pass                                  |
+| Final PR green          | Both checks ✓                                   |
+| PR merged               | GitHub shows Merged                             |
+| `main` updated          | `git pull`                                      |
+| Working tree clean      | `git status`                                    |
+
+### One thing I want you to do next
+
+**Don't change anything else yet.**
+
+First rename:
+
+```text
+test01
+↓
+contact-validator-scenario
+```
+
+Then go to:
+
+**Settings → Rules → Rulesets → New ruleset**
+
+When you're on the **New ruleset page**, send me a screenshot. I'll tell you **exactly which options to select**, including which CI checks to choose, so you don't accidentally configure the wrong protection.
+
+[1]: https://docs.github.com/en/repositories/creating-and-managing-repositories/renaming-a-repository?utm_source=chatgpt.com "Renaming a repository - GitHub Docs"
+[2]: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/managing-repository-settings/setting-repository-visibility?utm_source=chatgpt.com "Setting repository visibility - GitHub Docs"
+[3]: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets?utm_source=chatgpt.com "Available rules for rulesets - GitHub Docs"
+[4]: https://docs.github.com/en/organizations/managing-organization-settings/creating-rulesets-for-repositories-in-your-organization?utm_source=chatgpt.com "Creating rulesets for repositories in your organization - GitHub Docs"
+[5]: https://docs.github.com/en/pull-requests/reference/status-checks?utm_source=chatgpt.com "Status checks - GitHub Docs"
